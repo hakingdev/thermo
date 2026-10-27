@@ -26,8 +26,8 @@ export function fileStore(filename) {
 }
 
 export function redisStore(env) {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
+  const url = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
   if (!url || !token) return null;
   const key = env.SITE_STATE_KEY || "storefront:active-site";
   async function command(args) {

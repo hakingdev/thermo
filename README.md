@@ -80,7 +80,9 @@ KRYGA отправляет заявки на `/api/lead`; Columbia — на `/ap
 В дополнение к существующим переменным добавьте серверные (без префикса `VITE_`):
 
 - `SITE_ADMIN_PASSWORD` — длинный уникальный пароль для изменения сайта;
-- `UPSTASH_REDIS_REST_URL` и `UPSTASH_REDIS_REST_TOKEN` — постоянное общее хранилище;
+- `KV_REST_API_URL` и `KV_REST_API_TOKEN` — постоянное общее хранилище; эти переменные
+  добавляет интеграция Upstash через Vercel Marketplace. Для прямого подключения
+  также поддерживаются `UPSTASH_REDIS_REST_URL` и `UPSTASH_REDIS_REST_TOKEN`;
 - `SITE_STATE_KEY` — необязательно, по умолчанию `storefront:active-site`;
 - `COLUMBIA_DARKLEADS_API_KEY`, `COLUMBIA_DARKLEADS_PRODUCT_ID`,
   `COLUMBIA_DARKLEADS_STREAM_ID`, при необходимости `COLUMBIA_DARKLEADS_CPA_ID`,

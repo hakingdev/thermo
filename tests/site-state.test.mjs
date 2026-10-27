@@ -82,6 +82,10 @@ test('Redis adapter persists through the documented REST protocol', async t => {
   const env={UPSTASH_REDIS_REST_URL:url,UPSTASH_REDIS_REST_TOKEN:'test-redis-token',SITE_STATE_KEY:'test:site'};
   await redisStore(env).write({site:'columbia',updatedAt:'2026-10-27T00:00:00Z'});
   assert.equal((await redisStore(env).read()).site,'columbia');
+  const vercelEnv={KV_REST_API_URL:url,KV_REST_API_TOKEN:'test-redis-token',SITE_STATE_KEY:'test:site'};
+  assert.equal((await redisStore(vercelEnv).read()).site,'columbia');
+  await redisStore(vercelEnv).write({site:'kryga',updatedAt:'2026-10-27T00:01:00Z'});
+  assert.equal((await redisStore(env).read()).site,'kryga');
 });
 
 test('PHP stores a shared choice and enforces password and validation', async t => {
