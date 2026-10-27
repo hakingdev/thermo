@@ -1,0 +1,128 @@
+import { useEffect, useRef, useState } from "react";
+import "./admin.css";
+
+const sites = [
+  { id: "columbia", name: "Columbia", description: "Термобельё Omni-Heat", detail: "Мужская и женская коллекции" },
+  { id: "kryga", name: "KRYGA", description: "Тепло в движении", detail: "Комплекты для активной зимы" },
+];
+const nameOf = (id) => sites.find((site) => site.id === id)?.name || "—";
+
+function Icon({ name, ...props }) {
+  const paths = {
+    sites: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M8 9v11" /></>,
+    arrow: <><path d="M7 17 17 7M7 7h10v10" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
+    globe: <><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18" /></>,
+    swap: <><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4" /></>,
+  };
+  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;
+}
+
+export default function Admin() {
+  const [state, setState] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [password, setPassword] = useState("");
+  const passwordRef = useRef(null);
+  const requestVersion = useRef(0);
+
+  async function load() {
+    const version = ++requestVersion.current;
+    setLoading(true); setMessage(null);
+    try {
+      const response = await fetch("/api/site", { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      const data = await response.json();
+      if (version !== requestVersion.current) return;
+      if (!response.ok || !sites.some((site) => site.id === data.site)) throw new Error();
+      setState(data); setSelected(data.site);
+    } catch { if (version === requestVersion.current) setMessage({ error: true, text: "Не удалось получить текущий сайт. Проверьте соединение и повторите загрузку." }); }
+    finally { if (version === requestVersion.current) setLoading(false); }
+  }
+
+  useEffect(() => {
+    document.documentElement.lang = "ru";
+    document.documentElement.dataset.theme = "light";
+    document.title = "Управление сайтами · Columbia / KRYGA";
+    const robots = document.createElement("meta");
+    robots.name = "robots"; robots.content = "noindex, nofollow"; document.head.appendChild(robots);
+    load();
+    return () => { requestVersion.current++; robots.remove(); };
+  }, []);
+
+  async function apply(event) {
+    event.preventDefault();
+    if (loading || saving || !state || selected === state.site) return;
+    requestVersion.current++;
+    setSaving(true); setMessage(null);
+    try {
+      const response = await fetch("/api/site", {
+        method: "POST", headers: { "Content-Type": "application/json", ...(password ? { Authorization: `Bearer ${password}` } : {}) },
+        body: JSON.stringify({ site: selected }), signal: AbortSignal.timeout(10000),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) { passwordRef.current?.focus(); throw new Error("Неверный пароль администратора. Проверьте его и попробуйте ещё раз."); }
+        if (data.error === "not_configured") throw new Error("Переключение ещё не настроено на сервере. Подключите хранилище и пароль администратора по инструкции в README.");
+        throw new Error("Не удалось подтвердить переключение. Обновите статус перед повторной попыткой.");
+      }
+      setState(data); setSelected(data.site); setPassword("");
+      setMessage({ error: false, text: `${nameOf(data.site)} теперь открывается для всех посетителей.` });
+    } catch (error) { setMessage({ error: true, text: error.name === "TimeoutError" || error.name === "TypeError" ? "Связь с сервером прервалась. Обновите статус, чтобы проверить, сохранилось ли изменение." : error.message }); }
+    finally { setSaving(false); }
+  }
+
+  const changed = state && selected !== state.site;
+  return (
+    <div className="admin-shell">
+      <a className="admin-skip" href="#admin-main">Перейти к выбору сайта</a>
+      <aside className="admin-sidebar">
+        <a href="/admin" className="admin-brand"><Icon name="swap" /><span>Управление<span>Columbia / KRYGA</span></span></a>
+        <nav aria-label="Админка"><a href="/admin" className="admin-nav-link" aria-current="page"><Icon name="sites" />Сайты<span>2</span></a></nav>
+        <div className="admin-sidebar-bottom"><span className="admin-dot" />Один адрес. Два сайта.</div>
+      </aside>
+      <div className="admin-workspace">
+        <header className="admin-topbar"><span>Рабочее пространство <span className="admin-slash">/</span> <strong>Сайты</strong></span><a href="/" target="_blank" rel="noreferrer">Открыть сайт <Icon name="arrow" /></a></header>
+        <main id="admin-main" className="admin-main">
+          <div className="admin-heading"><div><h1>Управление сайтами</h1><p>Выберите, какой сайт увидят ваши посетители.</p></div><span className="admin-version">Панель управления</span></div>
+          <section className="admin-live" aria-label="Текущий сайт" aria-busy={loading}>
+            <div className="admin-live-icon"><Icon name="globe" /></div>
+            <div className="admin-live-copy"><span>Сейчас на основном адресе</span><strong>{loading ? "Загружаем статус…" : nameOf(state?.site)}{state && !loading && <span className="admin-live-status"><span className="admin-dot" />Активен</span>}</strong></div>
+            <button className="admin-text-button" type="button" disabled={loading || saving} onClick={load}>Обновить статус</button>
+          </section>
+          <form onSubmit={apply}>
+            <fieldset disabled={loading || saving || !state} className="admin-site-fieldset">
+              <legend>Доступные сайты <span>2</span></legend>
+              <div className="admin-sites">
+                {sites.map((site) => (
+                  <article key={site.id} className={`admin-site${selected === site.id ? " is-selected" : ""}`}>
+                    <label className="admin-site-choice">
+                      <input type="radio" name="site" value={site.id} checked={selected === site.id} onChange={() => { setSelected(site.id); setMessage(null); }} aria-label={`Выбрать ${site.name}`} />
+                      <span className="admin-choice-copy">{site.name}<span>{site.description}</span></span>
+                      <span className="admin-choice-indicator" aria-hidden="true">{selected === site.id && <Icon name="check" />}</span>
+                      <div className={`admin-site-preview admin-site-preview--${site.id}`} aria-hidden="true">
+                        {site.id === "columbia" ? <><span className="admin-preview-columbia">Columbia</span><div className="admin-preview-products"><img src="/img/columbia/men-front-640.webp" alt="" /><img src="/img/columbia/women-front-640.webp" alt="" /></div><span className="admin-preview-caption">Omni-Heat™</span></> : <><img src="/img/hero-runner-900.webp" alt="" /><span className="admin-preview-kryga">KRYGA</span></>}
+                      </div>
+                    </label>
+                    <div className="admin-site-bottom"><span>{state?.site === site.id ? <><span className="admin-dot" />Сейчас активен</> : site.detail}</span><a href={`/?preview=${site.id}`} target="_blank" rel="noreferrer" aria-label={`Предпросмотр ${site.name}`}>Предпросмотр <Icon name="arrow" /></a></div>
+                  </article>
+                ))}
+              </div>
+            </fieldset>
+            <div className="admin-apply-area">
+              <div className="admin-apply-description"><h2>{changed ? `Переключить на ${nameOf(selected)}` : "Всё готово к работе"}</h2><p>{changed ? `Сайт ${nameOf(selected)} заменит ${nameOf(state.site)} на основном адресе.` : "Выберите другой сайт, чтобы изменить основной."}</p></div>
+              <div className="admin-apply-controls">
+                {changed && state.requiresPassword && <label className="admin-password">Пароль администратора<input ref={passwordRef} type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required disabled={saving} /></label>}
+                <button className="admin-primary" type="submit" disabled={loading || !changed || saving || !state?.configured}>{saving ? "Переключаем…" : changed ? "Применить переключение" : "Изменений нет"}{changed && <Icon name="swap" />}</button>
+              </div>
+            </div>
+          </form>
+          <div className="admin-message" role={message?.error ? "alert" : "status"} aria-live="polite">{message && <p className={message.error ? "admin-error" : "admin-success"}>{message.text}</p>}</div>
+          {state && !state.configured && <p className="admin-configuration">Просмотр доступен. Для переключения настройте пароль и серверное хранилище по инструкции в README.</p>}
+          <footer className="admin-footer"><p>Изменение общее для всех посетителей и вступает в силу при открытии или обновлении страницы.</p><span>{state?.local ? "Локальная среда" : "Общий серверный выбор"}</span></footer>
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+.env.local
+.env.*.local
+server/php/config.php
+server/php/orders.log
+.taste-skill/inspect
+.vercel
+.DS_Store

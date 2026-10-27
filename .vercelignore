@@ -1,0 +1,10 @@
+server/php/config.php
+server/php/orders.log
+/dist
+/.taste-skill
+/assets
+.local
+.impeccable
+server/php/site-admin.config.php
+server/php/site-state.json
+columbia-site/server/php/config.php

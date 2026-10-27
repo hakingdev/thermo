@@ -1,0 +1,15 @@
+# Закрыть конфиг с ключом и лог заявок от просмотра
+<FilesMatch "^(config\.php|config\.example\.php|orders\.log)$">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# Фронт шлёт заявки на /api/lead — отдаём их PHP-прокси
+RewriteRule ^api/lead/?$ api.php [L]
+
+# SPA: существующие файлы отдаём как есть, остальные пути (/ru, /thanks, /privacy) — в index.html
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+RewriteRule ^ index.html [L]

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Columbia / KRYGA — термобілизна</title>
+    <meta name="description" content="Комплекти термобілизни Columbia та KRYGA для холодної погоди." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f9f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#071b1f" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Тема, выбранная посетителем, ставится до отрисовки — без вспышки светлого фона
+      try { var th = localStorage.getItem("kryga-theme"); if (th === "light" || th === "dark") document.documentElement.dataset.theme = th; } catch (e) {}
+    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="uk_UA" />
+    <meta property="og:title" content="Columbia / KRYGA — термобілизна" />
+    <meta property="og:description" content="Комплекти термобілизни для холодної погоди." />
+    <meta property="og:image" content="" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wdth,wght@75..150,300..900&display=swap" rel="stylesheet" />
+
+
+  </head>
+  <body>
+    <noscript>Для перегляду сайту увімкніть JavaScript.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

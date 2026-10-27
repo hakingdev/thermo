@@ -1,0 +1,5 @@
+server/php/config.php
+server/php/orders.log
+/dist
+/.taste-skill
+/assets
