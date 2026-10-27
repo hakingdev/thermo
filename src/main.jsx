@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 const root = createRoot(document.getElementById("root"));
 const admin = /^\/admin\/?$/.test(window.location.pathname);
 const preview = new URLSearchParams(window.location.search).get("preview");
+// Separate loaders preserve each storefront's CSS preload dependencies in the production build.
+const storefronts = {
+  columbia: () => import("../columbia-site/src/site.js"),
+  kryga: () => import("./sites/kryga.js"),
+};
 
 async function start() {
   if (admin) {
@@ -22,11 +27,7 @@ async function start() {
   if (columbia) delete document.documentElement.dataset.theme;
   document.documentElement.classList.add("js");
   document.documentElement.dataset.site = site;
-  const [{ default: App }, { PIXEL_ID }] = await Promise.all([
-    columbia ? import("../columbia-site/src/App.jsx") : import("./App.jsx"),
-    columbia ? import("../columbia-site/src/config.js") : import("./config.js"),
-    columbia ? import("../columbia-site/src/styles.css") : import("./styles.css"),
-  ]);
+  const { default: App, PIXEL_ID } = await storefronts[site]();
   document.querySelector('meta[property="og:image"]')?.setAttribute("content", columbia ? "/img/columbia/og.jpg" : "/img/hero-runner-900.jpg");
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", columbia ? "#f5f7fa" : "#f7f9f8");
   if (!preview && PIXEL_ID) {
