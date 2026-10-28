@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { initMetaPixel } from "./meta-pixel.js";
 const root = createRoot(document.getElementById("root"));
 const admin = /^\/admin\/?$/.test(window.location.pathname);
 const preview = new URLSearchParams(window.location.search).get("preview");
@@ -30,14 +31,7 @@ async function start() {
   const { default: App, PIXEL_ID } = await storefronts[site]();
   document.querySelector('meta[property="og:image"]')?.setAttribute("content", columbia ? "/img/columbia/og.jpg" : "/img/hero-runner-900.jpg");
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", columbia ? "#f5f7fa" : "#f7f9f8");
-  if (!preview && PIXEL_ID) {
-    const fbq = window.fbq = function () { fbq.callMethod ? fbq.callMethod(...arguments) : fbq.queue.push(arguments); };
-    fbq.queue = []; fbq.loaded = true; fbq.version = "2.0";
-    const script = document.createElement("script");
-    script.async = true; script.src = "https://connect.facebook.net/en_US/fbevents.js";
-    document.head.appendChild(script);
-    fbq("init", PIXEL_ID); fbq("track", "PageView");
-  }
+  initMetaPixel(PIXEL_ID, { enabled: import.meta.env.PROD && !preview });
   if (preview) {
     const robots = document.createElement("meta");
     robots.name = "robots"; robots.content = "noindex, nofollow"; document.head.appendChild(robots);

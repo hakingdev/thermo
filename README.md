@@ -18,7 +18,9 @@ npm run dev
 ## Деплой на Vercel
 
 1. Импортируйте папку в Vercel (Framework: Vite — подхватится из `vercel.json`).
-2. Settings → Environment Variables: `DARKLEADS_API_KEY` = ключ DarkLeads.
+2. Settings → Environment Variables: `DARKLEADS_API_KEY` = ключ DarkLeads;
+   `VITE_FB_PIXEL_ID=4988165351454889` = Meta Pixel для обеих витрин.
+   Пример `.env.example` сам по себе не задаёт переменные Vercel.
 3. Deploy. Заявки обрабатывает `api/lead.js`, лог заявок — в Vercel → Logs.
 
 ## Деплой на обычный хостинг (Apache + PHP)
@@ -40,8 +42,14 @@ npm run build:php
 
 ## Пиксель
 
-`VITE_FB_PIXEL_ID` в `.env`. PageView — на каждой странице, **Lead — один раз на странице «Дякуємо»** после успешной заявки
+`VITE_FB_PIXEL_ID` задаётся локально в `.env.local`, на Vercel — в Production Environment Variables
+до сборки (после изменения нужен новый деплой). Columbia использует тот же пиксель,
+если не задан отдельный `VITE_COLUMBIA_FB_PIXEL_ID`.
+PageView — на каждой странице, **Lead — один раз на странице «Дякуємо»** после успешной заявки
 (повторная загрузка или прямой заход на `/thanks` Lead не шлёт).
+В админке, предпросмотре и dev-сервере Meta отключён. Для проверки в Events Manager
+используйте обычный адрес без `?preview=`, вкладку «Тестирование событий» и успешную
+отправку формы. Открытие страницы «Спасибо» вручную проверяет только PageView.
 
 TikTok Pixel `D7D2H2BC77UDPR8SNM8G` установлен в `<head>` общей витрины и
 отдельной сборки Columbia. Базовый код работает также на `/thanks` и `/ru/thanks`.
@@ -106,7 +114,8 @@ KRYGA отправляет заявки на `/api/lead`; Columbia — на `/ap
 - `COLUMBIA_DARKLEADS_API_KEY`, `COLUMBIA_DARKLEADS_PRODUCT_ID`,
   `COLUMBIA_DARKLEADS_STREAM_ID`, при необходимости `COLUMBIA_DARKLEADS_CPA_ID`,
   `COLUMBIA_DARKLEADS_PRICE`, `COLUMBIA_DARKLEADS_ENDPOINT` — только для Columbia;
-- `VITE_COLUMBIA_FB_PIXEL_ID` — отдельный пиксель Columbia, необязательно.
+- `VITE_FB_PIXEL_ID` — общий Meta Pixel; `VITE_COLUMBIA_FB_PIXEL_ID` — отдельный пиксель
+  Columbia, необязательно (по умолчанию общий).
 
 Без Redis используется KRYGA по умолчанию. Без Redis или пароля вход в панель закрыт. Файловая система serverless для сохранения не используется.
 Протокол хранилища: [официальный Redis REST API](https://upstash.com/docs/redis/features/restapi).

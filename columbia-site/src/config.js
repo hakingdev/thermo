@@ -58,5 +58,5 @@ export function suggestSize(gender, height, weight) {
 // Размер, которого нет в линейке выбранной модели, сбрасываем (XS есть только у женской)
 export const sizeFor = (gender, size) => ((SIZES[gender] || SIZES.male).includes(size) ? size : null);
 
-export const PIXEL_ID = import.meta.env.VITE_MULTISITE ? (import.meta.env.VITE_COLUMBIA_FB_PIXEL_ID || "") : (import.meta.env.VITE_FB_PIXEL_ID || "");
+export const PIXEL_ID = import.meta.env.VITE_MULTISITE ? (import.meta.env.VITE_COLUMBIA_FB_PIXEL_ID || import.meta.env.VITE_FB_PIXEL_ID || "") : (import.meta.env.VITE_FB_PIXEL_ID || "");
 export const API_URL = import.meta.env.VITE_MULTISITE ? "/api/columbia-lead" : (import.meta.env.VITE_API_URL || "/api/lead");
