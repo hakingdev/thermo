@@ -1,4 +1,4 @@
-// Meta Pixel: базовый код и PageView — в index.html.
+// Meta / TikTok: базовый код загружается до приложения; TikTok — в <head> index.html.
 // Lead — главная метрика: шлём один раз и только на странице «Дякуємо» после успешной заявки.
 
 const LEAD_FLAG = "columbia_lead_pending";
@@ -18,9 +18,14 @@ export function consumeLead() {
     sessionStorage.removeItem(LEAD_FLAG);
   } catch {}
   if (!raw) return null;
-  let data = {};
-  try { data = JSON.parse(raw); } catch {}
+  let data;
+  try { data = JSON.parse(raw); } catch { return null; }
+  // Only the confirmation page consumes a fresh, successful form submission.
+  if (!/^\/(?:ru\/)?thanks\/?$/.test(window.location.pathname) ||
+      !data || !Number.isFinite(data.at) || Date.now() - data.at > 30 * 60 * 1000 ||
+      data.at > Date.now() || !Number.isFinite(data.value) || data.value <= 0) return null;
   window.fbq?.("track", "Lead", { value: data.value, currency: "UAH", content_name: "Columbia Omni-Heat Midweight baselayer set" });
+  window.ttq?.track("Lead", { value: data.value, currency: "UAH", content_name: "Columbia Omni-Heat Midweight baselayer set" });
   return data;
 }
 

@@ -43,6 +43,22 @@ npm run build:php
 `VITE_FB_PIXEL_ID` в `.env`. PageView — на каждой странице, **Lead — один раз на странице «Дякуємо»** после успешной заявки
 (повторная загрузка или прямой заход на `/thanks` Lead не шлёт).
 
+TikTok Pixel `D7D2H2BC77UDPR8SNM8G` установлен в `<head>` общей витрины и
+отдельной сборки Columbia. Базовый код работает также на `/thanks` и `/ru/thanks`.
+На первой загрузке вызывается `ttq.page()`; дальнейшие переходы SPA отслеживает
+сам SDK, без дополнительных ручных PageView.
+
+После успешного ответа API заявки страница «Спасибо» отправляет TikTok `Lead`
+с суммой заказа, `currency: UAH` и названием товара. Имя и телефон не передаются
+в параметрах события. Одноразовая отметка заявки предотвращает повтор при
+обновлении страницы; без отметки, с повреждённой или старше 30 минут событие
+не отправляется. В админке, предпросмотре, dev и на localhost TikTok отключён.
+В Events Manager основная конверсия — `Lead`; повторное правило на загрузку
+«Спасибо» в Event Builder добавлять не нужно, иначе появятся дубли.
+
+Справка TikTok: [актуальные названия событий](https://ads.tiktok.com/resources/help/article/how-to-adopt-tiktoks-updated-standard-events?lang=en),
+[автоматические PageView для SPA](https://ads.tiktok.com/resources/help/article/about-single-page-application-pageview-measurement-for-tiktok-pixel).
+
 ## Общая панель Columbia / KRYGA
 
 Из корня проекта `npm run dev`, затем откройте `http://localhost:5173/admin`.
