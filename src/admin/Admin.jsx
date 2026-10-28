@@ -18,20 +18,22 @@ function Icon({ name, ...props }) {
   return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;
 }
 
-export default function Admin() {
+export default function Admin({ onLogout, onUnauthorized, logoutBusy, authError }) {
   const [state, setState] = useState(null);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [password, setPassword] = useState("");
-  const passwordRef = useRef(null);
   const requestVersion = useRef(0);
 
   async function load() {
     const version = ++requestVersion.current;
     setLoading(true); setMessage(null);
     try {
+      const session = await fetch("/api/admin", { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (version !== requestVersion.current) return;
+      if (session.status === 401) { onUnauthorized(); return; }
+      if (!session.ok) throw new Error();
       const response = await fetch("/api/site", { cache: "no-store", signal: AbortSignal.timeout(8000) });
       const data = await response.json();
       if (version !== requestVersion.current) return;
@@ -58,16 +60,16 @@ export default function Admin() {
     setSaving(true); setMessage(null);
     try {
       const response = await fetch("/api/site", {
-        method: "POST", headers: { "Content-Type": "application/json", ...(password ? { Authorization: `Bearer ${password}` } : {}) },
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site: selected }), signal: AbortSignal.timeout(10000),
       });
       const data = await response.json();
       if (!response.ok) {
-        if (response.status === 401) { passwordRef.current?.focus(); throw new Error("Неверный пароль администратора. Проверьте его и попробуйте ещё раз."); }
+        if (response.status === 401) { onUnauthorized(); return; }
         if (data.error === "not_configured") throw new Error("Переключение ещё не настроено на сервере. Подключите хранилище и пароль администратора по инструкции в README.");
         throw new Error("Не удалось подтвердить переключение. Обновите статус перед повторной попыткой.");
       }
-      setState(data); setSelected(data.site); setPassword("");
+      setState(data); setSelected(data.site);
       setMessage({ error: false, text: `${nameOf(data.site)} теперь открывается для всех посетителей.` });
     } catch (error) { setMessage({ error: true, text: error.name === "TimeoutError" || error.name === "TypeError" ? "Связь с сервером прервалась. Обновите статус, чтобы проверить, сохранилось ли изменение." : error.message }); }
     finally { setSaving(false); }
@@ -83,7 +85,7 @@ export default function Admin() {
         <div className="admin-sidebar-bottom"><span className="admin-dot" />Один адрес. Два сайта.</div>
       </aside>
       <div className="admin-workspace">
-        <header className="admin-topbar"><span>Рабочее пространство <span className="admin-slash">/</span> <strong>Сайты</strong></span><a href="/" target="_blank" rel="noreferrer">Открыть сайт <Icon name="arrow" /></a></header>
+        <header className="admin-topbar"><span>Рабочее пространство <span className="admin-slash">/</span> <strong>Сайты</strong></span><div className="admin-account-actions"><a href="/" target="_blank" rel="noreferrer">Открыть сайт <Icon name="arrow" /></a><button className="admin-text-button" type="button" onClick={onLogout} disabled={logoutBusy || saving}>{logoutBusy ? "Выходим…" : "Выйти"}</button></div></header>
         <main id="admin-main" className="admin-main">
           <div className="admin-heading"><div><h1>Управление сайтами</h1><p>Выберите, какой сайт увидят ваши посетители.</p></div><span className="admin-version">Панель управления</span></div>
           <section className="admin-live" aria-label="Текущий сайт" aria-busy={loading}>
@@ -113,12 +115,12 @@ export default function Admin() {
             <div className="admin-apply-area">
               <div className="admin-apply-description"><h2>{changed ? `Переключить на ${nameOf(selected)}` : "Всё готово к работе"}</h2><p>{changed ? `Сайт ${nameOf(selected)} заменит ${nameOf(state.site)} на основном адресе.` : "Выберите другой сайт, чтобы изменить основной."}</p></div>
               <div className="admin-apply-controls">
-                {changed && state.requiresPassword && <label className="admin-password">Пароль администратора<input ref={passwordRef} type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required disabled={saving} /></label>}
                 <button className="admin-primary" type="submit" disabled={loading || !changed || saving || !state?.configured}>{saving ? "Переключаем…" : changed ? "Применить переключение" : "Изменений нет"}{changed && <Icon name="swap" />}</button>
               </div>
             </div>
           </form>
           <div className="admin-message" role={message?.error ? "alert" : "status"} aria-live="polite">{message && <p className={message.error ? "admin-error" : "admin-success"}>{message.text}</p>}</div>
+          {authError && <p className="admin-error" role="alert">{authError}</p>}
           {state && !state.configured && <p className="admin-configuration">Просмотр доступен. Для переключения настройте пароль и серверное хранилище по инструкции в README.</p>}
           <footer className="admin-footer"><p>Изменение общее для всех посетителей и вступает в силу при открытии или обновлении страницы.</p><span>{state?.local ? "Локальная среда" : "Общий серверный выбор"}</span></footer>
         </main>

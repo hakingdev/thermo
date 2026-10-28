@@ -201,7 +201,7 @@ Refresh is an underlined text button with no fill or border. It keeps the global
 
 ### Inputs / Fields
 
-The password field has a visible label, thin control-colored border, rounded input corners, horizontal inset, and the recorded input height. It appears only when a changed selection requires a password. Focus uses the shared blue outline. Feedback is written below the apply area; a rejected password returns focus to the field. No custom invalid-border style is implemented.
+The password field has a visible label, thin control-colored border, rounded input corners, horizontal inset, and the recorded input height. The login screen uses visible username and password labels, 46px inputs with 16px text, and the shared blue focus outline. Errors appear within the form. After login, switching uses the server session; there is no repeated password field in the apply area. A logout control sits beside the open-site link. No custom invalid-border style is implemented.
 
 ### Navigation
 
@@ -235,3 +235,7 @@ The live strip combines an outline globe, the current-site caption, the confirme
 - **Don't** add shadows or motion to the admin without an intentional design change.
 - **Don't** treat synthesized tonal-ramp values as shipped application tokens.
 - **Don't** show a selected site as active until the server confirms the change.
+
+## Admin sign-in
+
+Before authentication, a white sheet (maximum width 420px, padding 36px or 28px 24px on phones) sits within the existing pale frame. It uses the admin heading, field and primary-action styles. Loading, invalid credentials, rate limiting and network errors have explicit text. The panel loads only after a server-confirmed session.

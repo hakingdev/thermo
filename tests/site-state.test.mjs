@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { fileStore, siteHandler, redisStore } from '../server/site-state.mjs';
+const auth = { configured: true, authenticated: async req => req.headers.cookie === 'test-session=valid' };
 
 async function serve(t, handler) {
   const server = createServer(handler);
@@ -18,28 +19,28 @@ async function storeFor(t) {
   const filename = join(dir, 'state.json');
   return { filename, store: fileStore(filename) };
 }
-const post = (site, password='test-password') => ({method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${password}`}, body:JSON.stringify({site})});
+const post = (site, password='test-password') => ({method:'POST', headers:{'Content-Type':'application/json', Cookie: password === 'test-password' ? 'test-session=valid' : ''}, body:JSON.stringify({site})});
 
 test('selection is global, persistent across handler restarts, and never cached', async t => {
   const { filename, store } = await storeFor(t);
-  const url = await serve(t, siteHandler({store, password:'test-password'}));
+  const url = await serve(t, siteHandler({store, auth}));
   assert.equal((await (await fetch(url)).json()).site, 'kryga');
   for (const site of ['columbia', 'kryga']) {
     const result = await fetch(url, post(site));
     assert.equal(result.status, 200);
     assert.match(result.headers.get('cache-control'), /no-store/);
-    const other = await serve(t, siteHandler({store:fileStore(filename), password:'test-password'}));
+    const other = await serve(t, siteHandler({store:fileStore(filename), auth}));
     const data = await (await fetch(other)).json();
     assert.equal(data.site, site);
     assert.ok(data.updatedAt);
-    assert.equal(data.requiresPassword, true);
+    assert.equal(data.requiresLogin, true);
     assert.equal(JSON.stringify(data).includes('test-password'), false);
   }
 });
 
 test('missing/wrong password, invalid site and form posts cannot mutate state', async t => {
   const {store} = await storeFor(t);
-  const url = await serve(t, siteHandler({store, password:'test-password'}));
+  const url = await serve(t, siteHandler({store, auth}));
   assert.equal((await fetch(url, post('columbia', 'wrong'))).status, 401);
   assert.equal((await fetch(url, post('columbia', ''))).status, 401);
   assert.equal((await fetch(url, post('invalid'))).status, 422);
@@ -53,7 +54,7 @@ test('missing/wrong password, invalid site and form posts cannot mutate state', 
 
 test('production cannot write without credentials or persistent storage', async t => {
   const {store} = await storeFor(t);
-  for (const options of [{store}, {password:'test-password'}]) {
+  for (const options of [{store}, {auth}]) {
     const url = await serve(t, siteHandler(options));
     assert.equal((await (await fetch(url)).json()).configured, false);
     assert.equal((await fetch(url, post('columbia'))).status, 503);
@@ -93,7 +94,7 @@ test('PHP stores a shared choice and enforces password and validation', async t 
   const {copyFile} = await import('node:fs/promises');
   const dir = await mkdtemp(join(tmpdir(), 'site-php-test-'));
   t.after(() => rm(dir, {recursive:true, force:true}));
-  await copyFile(new URL('../server/php/site.php', import.meta.url), join(dir,'site.php'));
+  for (const f of ['site.php','admin.php','admin-session.php']) await copyFile(new URL('../server/php/' + f, import.meta.url), join(dir,f));
   const hash = execFileSync('php',['-r', 'echo password_hash("temporary-test-password", PASSWORD_DEFAULT);']).toString();
   await writeFile(join(dir,'site-admin.config.php'), `<?php return ['password_hash'=>'${hash}', 'state_file'=>__DIR__.'/state.json'];`);
   const socket = createServer();
@@ -105,12 +106,20 @@ test('PHP stores a shared choice and enforces password and validation', async t 
   await new Promise((resolve,reject)=>{php.stderr.once('data',resolve);php.once('error',reject);});
   const url=`http://127.0.0.1:${port}/site.php`;
   assert.equal((await (await fetch(url)).json()).site,'kryga');
-  assert.equal((await fetch(url,post('columbia','wrong'))).status,401);
-  assert.equal((await fetch(url,post('other','temporary-test-password'))).status,422);
-  assert.equal((await fetch(url,post('columbia','temporary-test-password'))).status,200);
+  assert.equal((await fetch(url,{...post('columbia'), headers:{'Content-Type':'application/json', Authorization:'Bearer wrong'}})).status,401);
+  const adminUrl = `http://127.0.0.1:${port}/admin.php`;
+  assert.equal((await fetch(adminUrl)).status,401);
+  const login = await fetch(adminUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'temporary-test-password'})});
+  assert.equal(login.status,200);
+  const cookie=login.headers.get('set-cookie').split(';')[0];
+  const phpPost = site => ({method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({site})});
+  assert.equal((await fetch(url,phpPost('other'))).status,422);
+  assert.equal((await fetch(url,phpPost('columbia'))).status,200);
   const response=await fetch(url);
   assert.match(response.headers.get('cache-control'),/no-store/);
   assert.equal((await response.json()).site,'columbia');
-  assert.equal((await fetch(url,post('kryga','temporary-test-password'))).status,200);
+  assert.equal((await fetch(url,phpPost('kryga'))).status,200);
   assert.equal((await (await fetch(url)).json()).site,'kryga');
+  assert.equal((await fetch(adminUrl,{method:'DELETE',headers:{'Content-Type':'application/json',Cookie:cookie}})).status,200);
+  assert.equal((await fetch(url,phpPost('columbia'))).status,401);
 });

@@ -14,4 +14,5 @@ server/php/orders.log
 server/php/site-admin.config.php
 site-state.json
 site-state.json.lock
+site-state.json.login-attempts
 columbia-site/server/php/config.php

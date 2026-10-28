@@ -11,6 +11,7 @@ if (!existsSync(join(from, "config.php"))) {
 }
 for (const f of ["api.php", "config.php", ".htaccess"]) copyFileSync(join(from, f), join(to, f));
 copyFileSync(join(from, "site.php"), join(to, "site.php"));
+for (const f of ["admin.php", "admin-session.php"]) copyFileSync(join(from, f), join(to, f));
 const adminConfig = existsSync(join(from, "site-admin.config.php")) ? "site-admin.config.php" : "site-admin.config.example.php";
 copyFileSync(join(from, adminConfig), join(to, adminConfig));
 mkdirSync(join(to, "columbia-api"), { recursive: true });

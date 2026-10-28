@@ -11,7 +11,7 @@ const storefronts = {
 
 async function start() {
   if (admin) {
-    const { default: Admin } = await import("./admin/Admin.jsx");
+    const { default: Admin } = await import("./admin/AdminEntry.jsx");
     root.render(<StrictMode><Admin /></StrictMode>);
     return;
   }

@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { timingSafeEqual, createHash } from "node:crypto";
+import { safeMutation } from "./admin-auth.mjs";
 
 export const validSite = (site) => site === "kryga" || site === "columbia";
 export const defaultState = () => ({ site: "kryga", updatedAt: null });
@@ -46,23 +46,21 @@ export function redisStore(env) {
   };
 }
 
-export function siteHandler({ store, password = "", local = false }) {
-  const configured = Boolean(store && (local || password));
-  const digest = (value) => createHash("sha256").update(value).digest();
+export function siteHandler({ store, auth, local = false }) {
+  const configured = Boolean(store && auth?.configured);
   return async (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.setHeader("X-Content-Type-Options", "nosniff");
     const reply = (status, body) => { res.statusCode = status; res.end(JSON.stringify(body)); };
-    const payload = (state) => ({ ...state, configured, requiresPassword: Boolean(password) || !local, local });
+    const payload = (state) => ({ ...state, configured, requiresLogin: true, local });
     try {
       if (req.method === "GET") return reply(200, payload(store ? await store.read() : defaultState()));
       if (req.method !== "POST") { res.setHeader("Allow", "GET, POST"); return reply(405, { error: "method" }); }
       if (!configured) return reply(503, { error: "not_configured" });
-      // JSON + custom auth header prevent cross-origin form submissions. Never enable CORS here.
+      if (!safeMutation(req)) return reply(403, { error: "origin" });
       if (!req.headers["content-type"]?.includes("application/json")) return reply(415, { error: "content_type" });
-      const token = String(req.headers.authorization || "").replace(/^Bearer /, "");
-      if (password && !timingSafeEqual(digest(token), digest(password))) return reply(401, { error: "unauthorized" });
+      if (!await auth.authenticated(req)) return reply(401, { error: "unauthorized" });
       let input = req.body;
       if (!input || typeof input === "string") {
         let raw = typeof input === "string" ? input : "";

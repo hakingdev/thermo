@@ -1,5 +1,5 @@
 # Закрыть конфиг с ключом и лог заявок от просмотра
-<FilesMatch "^(config\.php|config\.example\.php|site-admin\.config(?:\.example)?\.php|site-state\.json(?:\.lock)?|orders\.log)$">
+<FilesMatch "^(config\.php|config\.example\.php|admin-session\.php|site-admin\.config(?:\.example)?\.php|site-state\.json(?:\.lock|\.login-attempts)?|orders\.log)$">
   Require all denied
 </FilesMatch>
 
@@ -7,6 +7,7 @@ RewriteEngine On
 
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^api/site/?$ site.php [L]
+RewriteRule ^api/admin/?$ admin.php [L]
 RewriteRule ^api/columbia-lead/?$ columbia-api/api.php [L]
 
 # Фронт шлёт заявки на /api/lead — отдаём их PHP-прокси

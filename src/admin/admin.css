@@ -1,4 +1,15 @@
 :root { font-family: "TikTok Sans", system-ui, sans-serif; color: #183b42; background: #edf2f1; font-synthesis: none; color-scheme: light; --admin-ink: #183b42; --admin-muted: #52696d; --admin-line: #dfe7e5; --admin-accent: #06525c; }
+.admin-login { min-height: 100svh; display: grid; place-items: center; padding: 32px 20px; }
+.admin-login-sheet { width: 100%; max-width: 420px; padding: 36px; border: 1px solid var(--admin-line); border-radius: 16px; background: #fff; }
+.admin-login-sheet h1 { font-size: 28px; font-weight: 650; line-height: 1.2; letter-spacing: -.025em; text-wrap: balance; }
+.admin-login-description { margin-top: 12px; color: var(--admin-muted); }
+.admin-login-sheet form { display: grid; gap: 20px; margin-top: 28px; }
+.admin-login-sheet .admin-password { font-size: 14px; gap: 8px; }
+.admin-login-sheet .admin-password input { height: 46px; font-size: 16px; min-width: 0; }
+.admin-login-sheet .admin-primary { font-size: 14px; min-height: 46px; }
+.admin-login-back { display: inline-block; margin-top: 24px; color: var(--admin-muted); }
+.admin-account-actions { display: flex; gap: 24px; align-items: center; }
+@media (max-width: 560px) { .admin-login-sheet { padding: 28px 24px; } .admin-account-actions { gap: 16px; } }
 * { box-sizing: border-box; }
 body { margin: 0; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 button, input { font: inherit; color: inherit; }
