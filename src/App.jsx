@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
+import { parseStorefrontRoute } from "./routes.js";
 import { dict } from "./i18n.js";
 import { trackPageView } from "./pixel.js";
 import Home from "./pages/Home.jsx";
 import Thanks from "./pages/Thanks.jsx";
 import Privacy from "./pages/Privacy.jsx";
+import BootsPage from "./boots/BootsPage.jsx";
+import BootsThanks from "./boots/BootsThanks.jsx";
 
-// Маршруты: / (UA), /ru, /thanks, /ru/thanks, /privacy, /ru/privacy
-function parse(pathname) {
-  const p = pathname.replace(/\/+$/, "") || "/";
-  const ru = p === "/ru" || p.startsWith("/ru/");
-  const rest = ru ? p.slice(3) || "/" : p;
-  const page = rest === "/thanks" ? "thanks" : rest === "/privacy" ? "privacy" : "home";
-  return { lang: ru ? "ru" : "ua", page };
-}
+// Маршруты: / (UA), /ru, /thanks, /ru/thanks, /privacy, /ru/privacy,
+// /boots и /boots/thanks (+ /ru/…) — отдельная страница зимових кросівок
 
 export function pathFor(lang, page = "home") {
   const base = lang === "ru" ? "/ru" : "";
@@ -20,7 +17,8 @@ export function pathFor(lang, page = "home") {
   return base + tail || "/";
 }
 
-export default function App() {
+export default function App({ defaultPage = "home" }) {
+  const parse = (pathname) => parseStorefrontRoute(pathname, defaultPage);
   const [route, setRoute] = useState(() => parse(window.location.pathname));
   const [choice, setChoice] = useState({ gender: "male", color: "black", size: null });
   const t = dict[route.lang];
@@ -31,16 +29,18 @@ export default function App() {
     setRoute(parse(window.location.pathname));
     if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView());
     else window.scrollTo(0, 0);
-  }, []);
+  }, [defaultPage]);
 
   useEffect(() => {
     const onPop = () => setRoute(parse(window.location.pathname));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [defaultPage]);
 
+  const ownMeta = route.page.startsWith("boots"); // страница кросівок ставит заголовок и превью сама
   useEffect(() => {
     document.documentElement.lang = route.lang === "ru" ? "ru" : "uk";
+    if (ownMeta) return;
     document.title = route.page === "home" ? t.meta.title : `${route.page === "thanks" ? t.thanks.title : t.privacy.title} · KRYGA`;
     document.querySelector('meta[name="description"]')?.setAttribute("content", t.meta.description);
   }, [route, t]);
@@ -56,6 +56,7 @@ export default function App() {
     add({ rel: "alternate", hreflang: "ru", href: origin + pathFor("ru", route.page) });
     add({ rel: "alternate", hreflang: "x-default", href: origin + pathFor("ua", route.page) });
     const og = (prop, content) => document.querySelector(`meta[property="${prop}"]`)?.setAttribute("content", content);
+    if (ownMeta) return;
     og("og:title", t.meta.title);
     og("og:description", t.meta.description);
     og("og:locale", route.lang === "ru" ? "ru_UA" : "uk_UA");
@@ -79,6 +80,8 @@ export default function App() {
   const props = { t, lang: route.lang, page: route.page, navigate, choice, setChoice };
   if (route.page === "thanks") return <Thanks {...props} />;
   if (route.page === "privacy") return <Privacy {...props} />;
+  if (route.page === "boots") return <BootsPage {...props} />;
+  if (route.page === "boots/thanks") return <BootsThanks {...props} />;
   return <Home {...props} />;
 }
 

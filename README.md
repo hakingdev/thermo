@@ -143,3 +143,45 @@ KRYGA отправляет заявки на `/api/lead`; Columbia — на `/ap
 
 `node --test tests/*.test.mjs` — сохранение между обработчиками, авторизация,
 валидация, отсутствие хранилища и отказ при повреждённом состоянии.
+
+## Columbia Track: модуль Columbia
+
+Новая витрина доступна по `/columbia-track` и `/ru/columbia-track`, независимо от
+выбранного в админке сайта. Ссылка Columbia Track убрана из общего меню. Код и фотографии находятся в `columbia-site/src/track` и `columbia-site/public/img/columbia/track`. Серверная логика — `columbia-site/server/track-order.js`; корневой API-файл остаётся адаптером Vercel.
+Подтверждение заказа: `/columbia-track/thanks` и `/ru/columbia-track/thanks`.
+
+Форма → `/api/track-order` → DarkLeads. Серверные значения по умолчанию: поток
+`98074`, товар `121121`, CPA `121121`, цена `2490` грн. Ключ берётся из
+`TRACK_DARKLEADS_API_KEY`, резервно из `DARKLEADS_API_KEY`. Переменные
+`TRACK_DARKLEADS_STREAM_ID`, `TRACK_DARKLEADS_PRODUCT_ID`, `TRACK_DARKLEADS_CPA_ID`,
+`TRACK_DARKLEADS_PRICE`, `TRACK_DARKLEADS_ENDPOINT` позволяют переопределить оффер.
+Ключи не должны иметь префикс `VITE_` и не входят в клиентскую сборку.
+При изменении цены синхронизируйте сервер, `columbia-site/src/track/content.js`, тексты и событие в `columbia-site/src/track/pixel.js`.
+
+Используется общий Meta Pixel `VITE_FB_PIXEL_ID`, либо отдельный
+`VITE_TRACK_FB_PIXEL_ID`, если он задан. TikTok наследуется из общего `index.html`.
+Оба пикселя получают `Lead` с `value: 2490`, `currency: UAH`,
+`content_name: Columbia Track` только после принятой API заявки на странице
+«Спасибо». Отдельная отметка `columbia_track_order` в sessionStorage исключает
+повтор при обновлении и переключении языка; имя и телефон в неё не записываются.
+Прямой заход, устаревшая отметка и ответ API `dup` конверсии не создают.
+Антидубль API действует в пределах одного serverless-инстанса, а не глобально.
+В dev API отвечает заглушкой, поэтому проверка формы не создаёт реальный заказ.
+
+Фотографии и характеристики взяты со страницы предоставленного оффера:
+https://pricebest.site/ctrackua2910/ (29 октября 2026).
+Проверки: `node --test tests/track.test.mjs`, `npm run build`.
+
+
+## Boots в админке
+
+В `/admin` два независимых выбора: главная витрина (`site`) и бренд страницы
+Boots (`bootsSite`: `columbia` или `kryga`). На `/boots` и `/ru/boots` открывается
+Columbia Track или KRYGA Boots согласно сохранённому выбору; страницы `/boots/thanks`
+используют ту же витрину. Если на главной выбрана Boots, она также использует `bootsSite`.
+Для старого состояния без `bootsSite` сохраняется KRYGA Boots.
+
+Предпросмотры `/boots?preview=boots-columbia` и `/boots?preview=boots-kryga`
+не меняют общий выбор и отключают пиксели. Columbia Track использует `/api/track-order`,
+KRYGA Boots — `/api/boots-lead`; каждый вариант сохраняет собственную обработку
+подтверждения заказа и пикселей. Прямой старый адрес `/columbia-track` сохранён.

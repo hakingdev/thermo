@@ -25,7 +25,7 @@ test('selection is global, persistent across handler restarts, and never cached'
   const { filename, store } = await storeFor(t);
   const url = await serve(t, siteHandler({store, auth}));
   assert.equal((await (await fetch(url)).json()).site, 'kryga');
-  for (const site of ['columbia', 'kryga']) {
+  for (const site of ['columbia', 'boots', 'kryga']) {
     const result = await fetch(url, post(site));
     assert.equal(result.status, 200);
     assert.match(result.headers.get('cache-control'), /no-store/);
@@ -118,8 +118,33 @@ test('PHP stores a shared choice and enforces password and validation', async t 
   const response=await fetch(url);
   assert.match(response.headers.get('cache-control'),/no-store/);
   assert.equal((await response.json()).site,'columbia');
+  assert.equal((await fetch(url,phpPost('boots'))).status,200);
+  assert.equal((await (await fetch(url)).json()).site,'boots');
   assert.equal((await fetch(url,phpPost('kryga'))).status,200);
   assert.equal((await (await fetch(url)).json()).site,'kryga');
+  assert.equal((await fetch(url, {...phpPost('kryga'),body:JSON.stringify({site:'kryga',bootsSite:'columbia'})})).status,200);
+  assert.equal((await (await fetch(url)).json()).bootsSite,'columbia');
+  assert.equal((await fetch(url, {...phpPost('kryga'),body:JSON.stringify({site:'kryga',bootsSite:'invalid'})})).status,422);
+  await fetch(url,phpPost('columbia'));
+  assert.equal((await (await fetch(url)).json()).bootsSite,'columbia');
   assert.equal((await fetch(adminUrl,{method:'DELETE',headers:{'Content-Type':'application/json',Cookie:cookie}})).status,200);
   assert.equal((await fetch(url,phpPost('columbia'))).status,401);
+});
+
+test('Boots brand persists independently, migrates legacy state and survives old clients', async t => {
+  const {filename, store} = await storeFor(t);
+  await writeFile(filename, JSON.stringify({site:'columbia', updatedAt:null}));
+  const url = await serve(t, siteHandler({store,auth}));
+  assert.equal((await (await fetch(url)).json()).bootsSite, 'kryga');
+  for (const bootsSite of ['columbia', 'kryga', 'columbia']) {
+    const result = await fetch(url, {...post('columbia'),body:JSON.stringify({site:'columbia', bootsSite})});
+    assert.equal(result.status,200);
+    const data = await fileStore(filename).read();
+    assert.equal(data.bootsSite,bootsSite);
+    assert.equal(data.site,'columbia');
+  }
+  assert.equal((await fetch(url, {...post('columbia'),body:JSON.stringify({site:'columbia',bootsSite:'invalid'})})).status,422);
+  assert.equal((await fetch(url,post('kryga'))).status,200);
+  assert.equal((await store.read()).bootsSite,'columbia');
+  assert.equal((await store.read()).site,'kryga');
 });

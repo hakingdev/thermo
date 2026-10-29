@@ -4,7 +4,7 @@ import { markLeadPending } from "../pixel.js";
 import { Link, pathFor } from "../App.jsx";
 
 // +380 XX XXX XX XX
-function formatPhone(value) {
+export function formatPhone(value) {
   let d = value.replace(/\D/g, "");
   if (!d.startsWith("380")) d = "380" + d.replace(/^0+/, "").replace(/^380/, "");
   d = d.slice(0, 12);

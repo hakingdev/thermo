@@ -1,0 +1,6 @@
+.store-tabs { display: flex; justify-content: center; gap: 6px; padding: 10px 16px; background: #201c18; color: #f0e8dc; font: 500 14px/1.4 'TikTok Sans', system-ui, sans-serif; overflow-x: auto; }
+.store-tabs a { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 40px; padding: 8px 18px; color: inherit; text-decoration: none; }
+.store-tabs a:hover { background: #3c3126; }
+.store-tabs a[aria-current='page'] { background: #ecb35d; color: #201c18; }
+.store-tabs a:focus-visible { outline: 2px solid #ecb35d; outline-offset: 2px; }
+@media(max-width: 420px) { .store-tabs { gap: 2px; padding: 8px; } .store-tabs a { padding: 8px 12px; font-size: 13px; } }

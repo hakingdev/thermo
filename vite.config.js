@@ -34,6 +34,8 @@ function mockLeadApi() {
       };
       server.middlewares.use("/api/lead", mock);
       server.middlewares.use("/api/columbia-lead", mock);
+      server.middlewares.use("/api/boots-lead", mock);
+      server.middlewares.use("/api/track-order", mock);
     },
   };
 }

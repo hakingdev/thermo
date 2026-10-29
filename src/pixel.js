@@ -21,11 +21,12 @@ export function consumeLead() {
   let data;
   try { data = JSON.parse(raw); } catch { return null; }
   // Only the confirmation page consumes a fresh, successful form submission.
-  if (!/^\/(?:ru\/)?thanks\/?$/.test(window.location.pathname) ||
+  if (!/^\/(?:ru\/)?(?:boots\/)?thanks\/?$/.test(window.location.pathname) ||
       !data || !Number.isFinite(data.at) || Date.now() - data.at > 30 * 60 * 1000 ||
       data.at > Date.now() || !Number.isFinite(data.value) || data.value <= 0) return null;
-  window.fbq?.("track", "Lead", { value: data.value, currency: "UAH", content_name: "KRYGA thermal set" });
-  window.ttq?.track("Lead", { value: data.value, currency: "UAH", content_name: "KRYGA thermal set" });
+  const content_name = data.product || "KRYGA thermal set";
+  window.fbq?.("track", "Lead", { value: data.value, currency: "UAH", content_name });
+  window.ttq?.track("Lead", { value: data.value, currency: "UAH", content_name });
   return data;
 }
 

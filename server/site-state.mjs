@@ -2,12 +2,14 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { safeMutation } from "./admin-auth.mjs";
 
-export const validSite = (site) => site === "kryga" || site === "columbia";
-export const defaultState = () => ({ site: "kryga", updatedAt: null });
+export const validSite = (site) => site === "kryga" || site === "columbia" || site === "boots";
+export const validBootsSite = (site) => site === "kryga" || site === "columbia";
+export const defaultState = () => ({ site: "kryga", bootsSite: "kryga", updatedAt: null });
 
 function validateState(value) {
   if (!value || !validSite(value.site)) throw new Error("Invalid site state");
-  return { site: value.site, updatedAt: value.updatedAt || null };
+  if (value.bootsSite !== undefined && !validBootsSite(value.bootsSite)) throw new Error("Invalid boots state");
+  return { site: value.site, bootsSite: value.bootsSite || "kryga", updatedAt: value.updatedAt || null };
 }
 
 export function fileStore(filename) {
@@ -68,7 +70,9 @@ export function siteHandler({ store, auth, local = false }) {
         try { input = JSON.parse(raw); } catch { return reply(400, { error: "invalid_json" }); }
       }
       if (!validSite(input?.site)) return reply(422, { error: "site" });
-      const state = { site: input.site, updatedAt: new Date().toISOString() };
+      if (input.bootsSite !== undefined && !validBootsSite(input.bootsSite)) return reply(422, { error: "bootsSite" });
+      const previous = await store.read();
+      const state = { site: input.site, bootsSite: input.bootsSite ?? previous.bootsSite ?? "kryga", updatedAt: new Date().toISOString() };
       await store.write(state);
       return reply(200, payload(state));
     } catch { return reply(503, { error: "storage" }); }

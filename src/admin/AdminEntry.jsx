@@ -14,7 +14,7 @@ export default function AdminEntry() {
   useEffect(() => {
     document.documentElement.lang = "ru";
     document.documentElement.dataset.theme = "light";
-    document.title = "Вход в админку · Columbia / KRYGA";
+    document.title = "Вход в админку · Columbia / KRYGA / Boots";
     const robots = document.createElement("meta");
     robots.name = "robots"; robots.content = "noindex, nofollow";
     document.head.appendChild(robots);
@@ -57,7 +57,7 @@ export default function AdminEntry() {
       const response = await fetch("/api/admin", { method: "DELETE", credentials: "same-origin", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(8000) });
       if (!response.ok) throw new Error();
       setSession(null); setPassword("");
-      document.title = "Вход в админку · Columbia / KRYGA";
+      document.title = "Вход в админку · Columbia / KRYGA / Boots";
     } catch { setError("Не удалось выйти. Проверьте соединение и повторите попытку."); }
     finally { setBusy(false); }
   }
@@ -72,7 +72,7 @@ export default function AdminEntry() {
   return <main className="admin-login">
     <section className="admin-login-sheet" aria-labelledby="login-title">
       <h1 id="login-title">Вход в админку</h1>
-      <p className="admin-login-description">Управление сайтами Columbia и KRYGA.</p>
+      <p className="admin-login-description">Управление сайтами Columbia, KRYGA и Boots.</p>
       <form onSubmit={login} aria-busy={busy}>
         <label className="admin-password" htmlFor="admin-username">Логин<input id="admin-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(event) => setUsername(event.target.value)} required maxLength={128} disabled={busy} /></label>
         <label className="admin-password" htmlFor="admin-password">Пароль<input id="admin-password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required maxLength={256} disabled={busy} /></label>

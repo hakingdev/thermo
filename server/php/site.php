@@ -21,18 +21,21 @@ if ($method === 'POST') {
     if (strlen($raw) > 2048) site_reply(413, array('error' => 'body_size'));
     $input = json_decode($raw, true);
     if (!is_array($input)) site_reply(400, array('error' => 'invalid_json'));
-    if (!in_array($input['site'] ?? '', array('columbia', 'kryga'), true)) site_reply(422, array('error' => 'site'));
+    if (isset($input['bootsSite']) && !in_array($input['bootsSite'], array('columbia', 'kryga'), true)) site_reply(422, array('error' => 'bootsSite'));
+    if (!in_array($input['site'] ?? '', array('columbia', 'kryga', 'boots'), true)) site_reply(422, array('error' => 'site'));
 }
-$state = array('site' => 'kryga', 'updatedAt' => null);
-if ($method === 'GET' && is_file($stateFile)) {
+$state = array('site' => 'kryga', 'bootsSite' => 'kryga', 'updatedAt' => null);
+if (is_file($stateFile)) {
     $handle = @fopen($stateFile, 'r');
     if (!$handle || !flock($handle, LOCK_SH)) site_reply(503, array('error' => 'storage'));
     $state = json_decode(stream_get_contents($handle), true);
     flock($handle, LOCK_UN); fclose($handle);
-    if (!is_array($state) || !in_array($state['site'] ?? '', array('columbia', 'kryga'), true)) site_reply(503, array('error' => 'storage'));
+    if (!is_array($state) || !in_array($state['site'] ?? '', array('columbia', 'kryga', 'boots'), true)) site_reply(503, array('error' => 'storage'));
 }
+if (isset($state['bootsSite']) && !in_array($state['bootsSite'], array('columbia', 'kryga'), true)) site_reply(503, array('error' => 'storage'));
+$state['bootsSite'] = $state['bootsSite'] ?? 'kryga';
 if ($method === 'POST') {
-    $state = array('site' => $input['site'], 'updatedAt' => gmdate('Y-m-d\TH:i:s\Z'));
+    $state = array('site' => $input['site'], 'bootsSite' => $input['bootsSite'] ?? $state['bootsSite'], 'updatedAt' => gmdate('Y-m-d\TH:i:s\Z'));
     // Lock a separate file; atomic rename keeps the previous valid state on write failure.
     $lock = @fopen($stateFile . '.lock', 'c');
     if (!$lock || !flock($lock, LOCK_EX)) site_reply(503, array('error' => 'storage'));
