@@ -151,7 +151,7 @@ KRYGA отправляет заявки на `/api/lead`; Columbia — на `/ap
 Подтверждение заказа: `/columbia-track/thanks` и `/ru/columbia-track/thanks`.
 
 Форма → `/api/track-order` → DarkLeads. Серверные значения по умолчанию: поток
-`98074`, товар `121121`, CPA `121121`, цена `2490` грн. Ключ берётся из
+`98074`, товар `121121`, CPA `2015`, цена `2490` грн. Ключ берётся из
 `TRACK_DARKLEADS_API_KEY`, резервно из `DARKLEADS_API_KEY`. Переменные
 `TRACK_DARKLEADS_STREAM_ID`, `TRACK_DARKLEADS_PRODUCT_ID`, `TRACK_DARKLEADS_CPA_ID`,
 `TRACK_DARKLEADS_PRICE`, `TRACK_DARKLEADS_ENDPOINT` позволяют переопределить оффер.

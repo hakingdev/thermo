@@ -6,8 +6,8 @@ const ENDPOINT = process.env.BOOTS_DARKLEADS_ENDPOINT || process.env.DARKLEADS_E
 const PRODUCT_ID = process.env.BOOTS_DARKLEADS_PRODUCT_ID || "121121";
 const PRODUCT_PRICE = process.env.BOOTS_DARKLEADS_PRICE || "2490";
 const STREAM_ID = process.env.BOOTS_DARKLEADS_STREAM_ID || "98074";
-// Сверить в DarkLeads: в присланных данных CPA ID совпадает с ID товара (у термобелья был 1317)
-const CPA_ID = process.env.BOOTS_DARKLEADS_CPA_ID || "121121";
+// CPA ID из карточки Columbia Track в DarkLeads; отличается от ID товара.
+const CPA_ID = process.env.BOOTS_DARKLEADS_CPA_ID || "2015";
 const SIZES = ["40", "41", "42", "43", "44", "45"];
 
 // Антидубль в пределах одного инстанса функции (best effort)
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
   if (!apiKey) return reply(res, 500, { ok: false, error: "config" });
 
   const input = await readBody(req);
+  if (!input || typeof input !== "object" || Array.isArray(input)) return reply(res, 422, { ok: false, error: "body" });
 
   // Honeypot от ботов
   if (input.website) return reply(res, 200, { ok: true });
@@ -81,6 +82,8 @@ export default async function handler(req, res) {
     ip,
   });
 
+  let upstreamStatus = null;
+  let upstreamOk = false;
   let out = "";
   let err = "";
   try {
@@ -90,18 +93,22 @@ export default async function handler(req, res) {
       body: post.toString(),
       signal: AbortSignal.timeout(20000),
     });
+    upstreamStatus = r.status ?? null;
+    upstreamOk = r.ok;
     out = await r.text();
   } catch (e) {
-    err = String(e?.message || e);
+    err = e?.name === "TimeoutError" ? "timeout" : "network";
   }
-
-  // Лог заявок → Vercel Logs (без ключа)
-  console.log(JSON.stringify({ at: new Date().toISOString(), offer: "boots", name, phone, ip, comment, out: out.slice(0, 500), err }));
 
   let resp = null;
   try { resp = JSON.parse(out); } catch {}
-  if (!resp || resp.result !== "ok") {
-    return reply(res, 502, { ok: false, error: "darkleads", detail: String(resp?.result ?? err) });
+  if (!upstreamOk || !resp || resp.result !== "ok") {
+    const reason = resp?.errors?.code === "no_product_offer" ? "offer_configuration"
+      : err || (!resp ? "invalid_response" : "rejected");
+    // Keep diagnostics actionable without logging contacts, credentials or raw provider output.
+    console.error(JSON.stringify({ event: "darkleads_order_failed", productId: PRODUCT_ID,
+      streamId: STREAM_ID, cpaId: CPA_ID, upstreamStatus, reason }));
+    return reply(res, 502, { ok: false, error: "darkleads", reason });
   }
 
   recent.set(digits, Date.now());

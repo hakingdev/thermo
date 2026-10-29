@@ -56,7 +56,7 @@ test('Track API uses correct offer, server key, choice and attribution; rejects 
     const order = { name: 'Test customer', phone: '+380000000001', size: '43', lang:'UA', source: 'https://shop.example/columbia-track?utm_source=test&sub1=abc' };
     assert.equal((await invoke(order)).status, 200);
     assert.equal(sent.url, 'https://courier.darkleads.pro/data/exchange/extpartner/addorderapi.php');
-    for (const [key, value] of Object.entries({ api_key:'test-server-secret', product_id:'121121', stream_id:'98074', price:'2490', 'is_cpa[id]':'121121', source:order.source, url:order.source })) assert.equal(sent.data.get(key), value);
+    for (const [key, value] of Object.entries({ api_key:'test-server-secret', product_id:'121121', stream_id:'98074', price:'2490', 'is_cpa[id]':'2015', source:order.source, url:order.source })) assert.equal(sent.data.get(key), value);
     assert.match(sent.data.get('comment'), /Columbia Track.*43/);
     assert.equal((await invoke(order)).data.dup, true); assert.equal(count,1);
     status = 500; assert.equal((await invoke({...order,phone:'+380000000002'})).status,502);

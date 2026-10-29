@@ -6,8 +6,8 @@ const ENDPOINT = process.env.TRACK_DARKLEADS_ENDPOINT || process.env.DARKLEADS_E
 const PRODUCT_ID = process.env.TRACK_DARKLEADS_PRODUCT_ID || "121121";
 const PRODUCT_PRICE = process.env.TRACK_DARKLEADS_PRICE || "2490";
 const STREAM_ID = process.env.TRACK_DARKLEADS_STREAM_ID || "98074";
-// CPA ID предоставлен владельцем потока.
-const CPA_ID = process.env.TRACK_DARKLEADS_CPA_ID || "121121";
+// CPA ID из карточки Columbia Track в DarkLeads; отличается от ID товара.
+const CPA_ID = process.env.TRACK_DARKLEADS_CPA_ID || "2015";
 const SIZES = ["40", "41", "42", "43", "44", "45"];
 
 // Антидубль в пределах одного инстанса функции (best effort)
@@ -83,6 +83,7 @@ export default async function handler(req, res) {
     ip,
   });
 
+  let upstreamStatus = null;
   let upstreamOk = false;
   let out = "";
   let err = "";
@@ -93,16 +94,22 @@ export default async function handler(req, res) {
       body: post.toString(),
       signal: AbortSignal.timeout(20000),
     });
+    upstreamStatus = r.status ?? null;
     upstreamOk = r.ok;
     out = await r.text();
   } catch (e) {
-    err = String(e?.message || e);
+    err = e?.name === "TimeoutError" ? "timeout" : "network";
   }
 
   let resp = null;
   try { resp = JSON.parse(out); } catch {}
   if (!upstreamOk || !resp || resp.result !== "ok") {
-    return reply(res, 502, { ok: false, error: "darkleads" });
+    const reason = resp?.errors?.code === "no_product_offer" ? "offer_configuration"
+      : err || (!resp ? "invalid_response" : "rejected");
+    // Keep diagnostics actionable without logging contacts, credentials or raw provider output.
+    console.error(JSON.stringify({ event: "darkleads_order_failed", productId: PRODUCT_ID,
+      streamId: STREAM_ID, cpaId: CPA_ID, upstreamStatus, reason }));
+    return reply(res, 502, { ok: false, error: "darkleads", reason });
   }
 
   recent.set(digits, Date.now());
